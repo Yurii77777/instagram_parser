@@ -33,7 +33,7 @@ const FollowerSchema: Schema = new Schema(
     },
     segment: {
       type: String,
-      enum: Object.values(Segment),
+      enum: Segment,
     },
     isMessageSent: {
       type: Boolean,
