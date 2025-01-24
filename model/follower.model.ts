@@ -1,7 +1,7 @@
 import { model, Schema, Model, Document } from 'mongoose';
 
 export enum Segment {
-  Cosmetology = 'cosmetology',
+  SomeSegment = 'someSegment',
 }
 
 export interface IFollower extends Document {
