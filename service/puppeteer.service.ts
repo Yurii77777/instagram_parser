@@ -1,5 +1,7 @@
 const puppeteer = require('puppeteer');
 
+import { logger, LoggerType } from '../utils/logger';
+
 export class PuppeteerService {
   async launchBrowser(settings?) {
     try {
@@ -11,7 +13,7 @@ export class PuppeteerService {
         ...settings,
       });
     } catch (error) {
-      console.log('\x1b[31m%s\x1b[0m Browser was not launched!', 'ERROR :::');
+      logger({ type: LoggerType.Error, message: 'Browser was not launched!', meta: error });
     }
   }
 
@@ -19,7 +21,7 @@ export class PuppeteerService {
     try {
       return await browserInstance.close();
     } catch (error) {
-      console.log('\x1b[31m%s\x1b[0m Browser was not closed!', 'ERROR :::');
+      logger({ type: LoggerType.Error, message: 'Browser was not closed!', meta: error });
     }
   }
 
@@ -27,7 +29,7 @@ export class PuppeteerService {
     try {
       return await browserInstance.newPage();
     } catch (error) {
-      console.log('\x1b[31m%s\x1b[0m Page was not created!', 'ERROR :::');
+      logger({ type: LoggerType.Error, message: 'Page was not created!', meta: error });
     }
   }
 }

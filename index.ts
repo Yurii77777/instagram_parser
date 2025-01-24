@@ -3,6 +3,8 @@ import App from './app';
 
 require('dotenv').config();
 
+import { logger, LoggerType } from './utils/logger';
+
 const port = process.env.PORT || 3080;
 
 App.set('port', port);
@@ -13,7 +15,7 @@ server.on('listening', async function () {
   const addr = server.address();
   const bind = typeof addr === 'string' ? `pipe ${addr}` : `port ${addr.port}`;
 
-  console.log(`\x1b[32m%s\x1b[0m Listening on ${bind}`, 'SUCCESS :::');
+  logger({ type: LoggerType.Info, message: `Listening on ${bind}` });
 });
 
 module.exports = App;

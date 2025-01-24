@@ -8,6 +8,7 @@ import { Segment } from '../model/follower.model';
 
 import { handleResponse } from '../utils/handleResponse';
 import { getRandomNumber } from '../utils/getRandomNumber';
+import { logger, LoggerType } from '../utils/logger';
 
 export class InstagramController {
   private instagramService: InstagramService;
@@ -29,7 +30,7 @@ export class InstagramController {
       if (!browserInstance) {
         return handleResponse(res, 400, 'ERROR ::: Browser was not launched!');
       }
-      console.log('\x1b[32m%s\x1b[0m Browser launched successfully!', 'SUCCESS :::');
+      logger({ type: LoggerType.Info, message: 'Browser launched successfully!' });
 
       const page = await this.puppeteerService.createPage(browserInstance);
 
@@ -46,7 +47,6 @@ export class InstagramController {
       handleResponse(res, 200, 'Parsing was started successfully');
 
       const followers = await this.instagramService.parseFollowers({ page, donorPage });
-      // await this.instagramService.closeBrowser(browserInstance);
 
       const failedFollowers = [];
 
@@ -69,7 +69,7 @@ export class InstagramController {
             });
           }
         } catch (err) {
-          console.log('\x1b[31m%s\x1b[0m Error inserting follower: ', 'ERROR :::', err);
+          logger({ type: LoggerType.Info, message: 'Error inserting follower', meta: err });
 
           failedFollowers.push({
             id,
@@ -80,7 +80,7 @@ export class InstagramController {
         }
       }
 
-      console.log(`\x1b[32m%s\x1b[0m ${followers.length} followers was saved!`, 'SUCCESS :::');
+      logger({ type: LoggerType.Info, message: `${followers.length} followers saved!` });
     } catch (error) {
       return next(error);
     }
@@ -95,7 +95,7 @@ export class InstagramController {
       if (!browserInstance) {
         return handleResponse(res, 400, 'ERROR ::: Browser was not launched!');
       }
-      console.log('\x1b[32m%s\x1b[0m Browser launched successfully!', 'SUCCESS :::');
+      logger({ type: LoggerType.Info, message: 'Browser launched successfully!' });
 
       const page = await this.puppeteerService.createPage(browserInstance);
 
@@ -116,7 +116,7 @@ export class InstagramController {
 
       handleResponse(res, 200, 'Mailing started successfully!', followers);
 
-      // test bigger timaout
+      // test bigger timeout
       page.setDefaultTimeout(90000);
       for (const { _id, nickName } of followers) {
         await this.instagramService.sendMessage({ message, recipient: nickName, page });

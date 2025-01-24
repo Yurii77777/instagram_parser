@@ -1,6 +1,7 @@
 import { connect } from '../config/db.config';
 
 import { IFollower, FollowerModel } from '../model/follower.model';
+import { logger, LoggerType } from '../utils/logger';
 
 export class FollowerRepository {
   constructor() {
@@ -11,7 +12,7 @@ export class FollowerRepository {
     try {
       return await FollowerModel.create(follower);
     } catch (err) {
-      console.log('\x1b[31m%s\x1b[0m Follower was not created: ', 'ERROR :::', err);
+      logger({ type: LoggerType.Error, message: 'Follower was not created', meta: err });
     }
   }
 
@@ -19,7 +20,7 @@ export class FollowerRepository {
     try {
       return await FollowerModel.findOne(follower);
     } catch (err) {
-      console.log('\x1b[31m%s\x1b[0m Follower was not retrived: ', 'ERROR :::', err);
+      logger({ type: LoggerType.Error, message: 'Follower was not retrived', meta: err });
     }
   }
 
@@ -40,7 +41,7 @@ export class FollowerRepository {
 
       return data;
     } catch (err) {
-      console.log('\x1b[31m%s\x1b[0m Followers was not retrived: ', 'ERROR :::', err);
+      logger({ type: LoggerType.Error, message: 'Followers was not retrived', meta: err });
     }
   }
 
@@ -50,7 +51,7 @@ export class FollowerRepository {
     try {
       data = await FollowerModel.findOneAndUpdate(follower, update, { new: true });
     } catch (err) {
-      console.log('\x1b[31m%s\x1b[0m Follower was not updated: ', 'ERROR :::', err);
+      logger({ type: LoggerType.Error, message: 'Follower was not updated', meta: err });
     }
 
     return data;

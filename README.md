@@ -1,5 +1,8 @@
 # Instagram followers parser
 
+An example of interaction with a tool called Puppeteer.
+site: https://pptr.dev/
+
 ## env
 
 - `PORT` = 3080;

@@ -17,3 +17,16 @@ export const INSTAGRAM_API = {
   FOLLOWERS: '/api/v1/friendships',
   DIRECT: 'direct/inbox',
 };
+
+export const MIN_DEFAULT_DELAY = 1000;
+export const MIN_DELAY_MILLISECONDS_AUTH = 10000;
+export const MAX_DELAY_MILLISECONDS_AUTH = 15000;
+export const MIN_DELAY_MILLISECONDS_SCROLL_FOLLOWERS = 3000;
+export const MAX_DELAY_MILLISECONDS_SCROLL_FOLLOWERS = 5000;
+export const NUMBER_OF_ELEMENTS_SECTION = 4;
+export const NEEDED_SECTION_ITEM_INDEX = 3;
+export const NUMBER_OF_ELEMENTS_LIST = 2;
+export const NEEDED_LIST_ITEM_INDEX = 1;
+export const MAX_ATTEMPTS_TO_SCROLL_FOLLOWERS_DIALOG = 5;
+export const CHAT_BUTTON_TITLE = 'Chat';
+export const SEND_MESSAGE_BUTTON_TITLE = 'Send';

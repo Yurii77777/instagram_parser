@@ -1,52 +1,60 @@
 const fs = require('fs');
 const path = require('path');
 
-import { FollowerRepository } from '../repository/follower.repository';
-
 import { getRandomNumber } from '../utils/getRandomNumber';
 import { convertToCSV } from '../utils/convertToCSV';
 import { delay } from '../utils/delay';
+import { logger, LoggerType } from '../utils/logger';
 
 import { needToCreateCsvFile, TAG } from '../constants/common.constants';
-import { INSTAGRAM_API, INSTAGRAM_CONSTANTS } from '../constants/instagram.constants';
+import {
+  CHAT_BUTTON_TITLE,
+  INSTAGRAM_API,
+  INSTAGRAM_CONSTANTS,
+  MAX_ATTEMPTS_TO_SCROLL_FOLLOWERS_DIALOG,
+  MAX_DELAY_MILLISECONDS_AUTH,
+  MAX_DELAY_MILLISECONDS_SCROLL_FOLLOWERS,
+  MIN_DEFAULT_DELAY,
+  MIN_DELAY_MILLISECONDS_AUTH,
+  MIN_DELAY_MILLISECONDS_SCROLL_FOLLOWERS,
+  NEEDED_LIST_ITEM_INDEX,
+  NEEDED_SECTION_ITEM_INDEX,
+  NUMBER_OF_ELEMENTS_LIST,
+  NUMBER_OF_ELEMENTS_SECTION,
+  SEND_MESSAGE_BUTTON_TITLE,
+} from '../constants/instagram.constants';
 
 export class InstagramService {
-  private followerRepository: FollowerRepository;
-
-  constructor() {
-    this.followerRepository = new FollowerRepository();
-  }
-
   async userAuthorize({ page, email, password }) {
     try {
       await page.goto(INSTAGRAM_CONSTANTS.BASE_URL);
       await page.waitForSelector(TAG.FORM);
-      console.log(`\x1b[32m%s\x1b[0m Tag ${TAG.FORM} successfully loaded`, 'SUCCESS :::');
+      logger({ type: LoggerType.Info, message: `Tag ${TAG.FORM} successfully loaded` });
 
       const inputUserName = await page.$(INSTAGRAM_CONSTANTS.USER_NAME_INPUT);
       await inputUserName.type(email);
-      console.log(`\x1b[32m%s\x1b[0m User name ${email} successfully added`, 'SUCCESS :::');
+      logger({ type: LoggerType.Info, message: `User name ${email} successfully added` });
 
       const inputUserPassword = await page.$(INSTAGRAM_CONSTANTS.USER_PASSWORD_INPUT);
       await inputUserPassword.type(password);
-      console.log(`\x1b[32m%s\x1b[0m User password successfully added`, 'SUCCESS :::');
+      logger({ type: LoggerType.Info, message: `User password successfully added` });
 
       const button = await page.$(INSTAGRAM_CONSTANTS.LOGIN_BUTTON);
 
       if (!button) {
-        console.log('\x1b[31m%s\x1b[0m Login button not found!', 'ERROR :::');
+        logger({ type: LoggerType.Error, message: `Login button not found!` });
         return;
       }
 
       await button.click();
-      console.log(`\x1b[32m%s\x1b[0m Loged in successfully`, 'SUCCESS :::');
+      logger({ type: LoggerType.Info, message: `Loged in successfully` });
 
-      await delay(getRandomNumber(10000, 15000));
-      console.log(`\x1b[32m%s\x1b[0m Delay have passed`, 'SUCCESS :::');
+      await delay(getRandomNumber(MIN_DELAY_MILLISECONDS_AUTH, MAX_DELAY_MILLISECONDS_AUTH));
+      logger({ type: LoggerType.Info, message: `Delay have passed` });
 
       return true;
     } catch (error) {
-      console.log('\x1b[31m%s\x1b[0m userAuthorize: ', 'ERROR :::', error);
+      logger({ type: LoggerType.Error, message: `userAuthorize`, meta: error });
       return false;
     }
   }
@@ -56,39 +64,39 @@ export class InstagramService {
 
     try {
       await page.goto(`${INSTAGRAM_CONSTANTS.BASE_URL}${donorPage}`);
-      console.log(`\x1b[32m%s\x1b[0m Navigate to ${donorPage} page`, 'SUCCESS :::');
+      logger({ type: LoggerType.Info, message: `Navigate to ${donorPage} page` });
 
       await page.waitForSelector(TAG.HEADER);
-      console.log(`\x1b[32m%s\x1b[0m Tag ${TAG.HEADER} successfully loaded`, 'SUCCESS :::');
+      logger({ type: LoggerType.Info, message: `Tag ${TAG.HEADER} successfully loaded` });
 
       const sections = await page.$$(TAG.SECTION);
-      console.log(`\x1b[32m%s\x1b[0m Tags ${TAG.SECTION} successfully retrived`, 'SUCCESS :::');
+      logger({ type: LoggerType.Info, message: `Tags ${TAG.SECTION} successfully retrived` });
 
-      if (sections.length < 4) {
-        console.log(`\x1b[31m%s\x1b[0m Not enough ${TAG.LIST_ITEM} elements in the ${TAG.LIST}!`, 'ERROR :::');
+      if (sections.length < NUMBER_OF_ELEMENTS_SECTION) {
+        logger({ type: LoggerType.Error, message: `Not enough ${TAG.LIST_ITEM} elements in the ${TAG.LIST}!` });
         return;
       }
 
-      const thirdSection = sections[3];
-      const topMenuList = await thirdSection.$(TAG.LIST);
+      const fourthSection = sections[NEEDED_SECTION_ITEM_INDEX];
+      const topMenuList = await fourthSection.$(TAG.LIST);
 
       if (!topMenuList) {
-        console.log(`\x1b[31m%s\x1b[0m Not found ${TAG.LIST} in the ${TAG.SECTION}!`, 'ERROR :::');
+        logger({ type: LoggerType.Error, message: `Not found ${TAG.LIST} in the ${TAG.SECTION}!` });
         return;
       }
 
       const listItems = await topMenuList.$$(TAG.LIST_ITEM);
 
-      if (listItems.length < 2) {
-        console.log(`\x1b[31m%s\x1b[0m Not enough ${TAG.LIST_ITEM} elements in the ${TAG.LIST}!`, 'ERROR :::');
+      if (listItems.length < NUMBER_OF_ELEMENTS_LIST) {
+        logger({ type: LoggerType.Error, message: `Not enough ${TAG.LIST_ITEM} elements in the ${TAG.LIST}!` });
         return;
       }
 
-      await listItems[1].click();
-      console.log(
-        `\x1b[32m%s\x1b[0m Clicked the second ${TAG.LIST_ITEM} element in the ${TAG.LIST} of the third ${TAG.SECTION}`,
-        'SUCCESS :::',
-      );
+      await listItems[NEEDED_LIST_ITEM_INDEX].click();
+      logger({
+        type: LoggerType.Info,
+        message: `Clicked the second ${TAG.LIST_ITEM} element in the ${TAG.LIST}`,
+      });
 
       page.on('response', async (response) => {
         const request = response.request();
@@ -100,19 +108,21 @@ export class InstagramService {
             if (responseBody?.status !== 'ok') return;
 
             followers.push(...responseBody.users);
-            console.log(`\x1b[32m%s\x1b[0m Total parsed followers: `, 'SUCCESS :::', followers.length);
+            logger({
+              type: LoggerType.Info,
+              message: `Total parsed followers: ${followers.length}`,
+            });
           } catch (err) {
-            console.log(`\x1b[31m%s\x1b[0m Failed to parse response body:`, 'ERROR :::');
+            logger({ type: LoggerType.Error, message: 'Failed to parse response body' });
           }
         }
       });
 
       await page.waitForSelector(INSTAGRAM_CONSTANTS.DIALOG_POPUP, { visible: true });
-      console.log(
-        `\x1b[32m%s\x1b[0m Tag ${INSTAGRAM_CONSTANTS.DIALOG_POPUP} successfully loaded`,
-        'SUCCESS :::',
-        followers.length,
-      );
+      logger({
+        type: LoggerType.Info,
+        message: `Tag ${INSTAGRAM_CONSTANTS.DIALOG_POPUP} successfully loaded`,
+      });
 
       await page.waitForSelector(INSTAGRAM_CONSTANTS.FOLLOWERS_SCROLL_LAYER);
 
@@ -120,7 +130,7 @@ export class InstagramService {
       let newHeight;
       let noMoreNewElements = 0;
 
-      while (noMoreNewElements < 5) {
+      while (noMoreNewElements < MAX_ATTEMPTS_TO_SCROLL_FOLLOWERS_DIALOG) {
         previousHeight = await page.evaluate((selector) => {
           const element = document.querySelector(selector);
           return element ? element.scrollHeight : 0;
@@ -133,7 +143,7 @@ export class InstagramService {
           }
         }, INSTAGRAM_CONSTANTS.FOLLOWERS_SCROLL_LAYER);
 
-        await delay(getRandomNumber(3000, 5000));
+        await delay(getRandomNumber(MIN_DELAY_MILLISECONDS_SCROLL_FOLLOWERS, MAX_DELAY_MILLISECONDS_SCROLL_FOLLOWERS));
 
         newHeight = await page.evaluate((selector) => {
           const element = document.querySelector(selector);
@@ -146,10 +156,16 @@ export class InstagramService {
           noMoreNewElements = 0;
         }
 
-        console.log('Scrolling... Current height:', newHeight);
+        logger({
+          type: LoggerType.Info,
+          message: `'Scrolling... Current height: ${newHeight}`,
+        });
       }
 
-      console.log(`\x1b[32m%s\x1b[0m Finished scrolling. Total followers collected: `, 'SUCCESS :::', followers.length);
+      logger({
+        type: LoggerType.Info,
+        message: `Finished scrolling. Total followers collected: ${followers.length}`,
+      });
 
       if (!needToCreateCsvFile) {
         return followers;
@@ -159,7 +175,10 @@ export class InstagramService {
         const filePath = path.join(__dirname, 'followers.csv');
         fs.writeFileSync(filePath, csvData, 'utf8');
 
-        console.log(`CSV file has been saved at ${filePath}`);
+        logger({
+          type: LoggerType.Info,
+          message: `CSV file has been saved at ${filePath}`,
+        });
 
         const client = await page.target().createCDPSession();
         await client.send('Page.setDownloadBehavior', {
@@ -186,7 +205,7 @@ export class InstagramService {
         return followers;
       }
     } catch (error) {
-      console.log(`\x1b[31m%s\x1b[0m parseFollowers`, 'ERROR :::', error);
+      logger({ type: LoggerType.Error, message: 'parseFollowers', meta: error });
       return followers;
     }
   }
@@ -194,15 +213,15 @@ export class InstagramService {
   async sendMessage({ message, recipient, page }) {
     try {
       await page.goto(`${INSTAGRAM_CONSTANTS.BASE_URL}${INSTAGRAM_API.DIRECT}`);
-      console.log(`\x1b[32m%s\x1b[0m Navigate to '${INSTAGRAM_API.DIRECT}' page`, 'SUCCESS :::');
+      logger({ type: LoggerType.Info, message: `Navigate to '${INSTAGRAM_API.DIRECT}' page` });
 
-      await delay(getRandomNumber(3000, 5000));
+      await delay(getRandomNumber(MIN_DELAY_MILLISECONDS_SCROLL_FOLLOWERS, MAX_DELAY_MILLISECONDS_SCROLL_FOLLOWERS));
 
       const turnOffNotificationButton = await page.$(INSTAGRAM_CONSTANTS.TURN_OFF_NOTIFICATION_BUTTON);
 
       if (turnOffNotificationButton) {
         await turnOffNotificationButton.click();
-        console.log(`\x1b[32m%s\x1b[0m Notifications off`, 'SUCCESS :::');
+        logger({ type: LoggerType.Info, message: 'Notifications off' });
       }
 
       await page.waitForSelector(INSTAGRAM_CONSTANTS.BUTTON);
@@ -223,9 +242,9 @@ export class InstagramService {
       }, INSTAGRAM_CONSTANTS.BUTTON);
 
       if (wasClickedSendMessageButton) {
-        console.log(`\x1b[32m%s\x1b[0m Send message dialog opened`, 'SUCCESS :::');
+        logger({ type: LoggerType.Info, message: 'Send message dialog opened' });
       } else {
-        console.log(`\x1b[31m%s\x1b[0m Send message dialog was not opened: `, 'ERROR :::');
+        logger({ type: LoggerType.Error, message: 'Failed to open message dialog!' });
       }
 
       await page.waitForSelector(INSTAGRAM_CONSTANTS.DIALOG_POPUP, { visible: true });
@@ -233,7 +252,7 @@ export class InstagramService {
       const searchUserInput = await page.$(INSTAGRAM_CONSTANTS.SEARCH_USER_INPUT);
       await searchUserInput.type(recipient);
 
-      await delay(getRandomNumber(3000, 5000));
+      await delay(getRandomNumber(MIN_DELAY_MILLISECONDS_SCROLL_FOLLOWERS, MAX_DELAY_MILLISECONDS_SCROLL_FOLLOWERS));
 
       await page.waitForSelector(INSTAGRAM_CONSTANTS.USER_CHECKBOX);
       await page.evaluate((userCheckboxSelector) => {
@@ -247,22 +266,23 @@ export class InstagramService {
       const chatDialog = await page.$(INSTAGRAM_CONSTANTS.DIALOG_POPUP);
 
       if (!chatDialog) {
-        console.log('\x1b[31m%s\x1b[0m Chat dialog not retrived!', 'ERROR :::');
+        logger({ type: LoggerType.Error, message: 'Chat dialog not retrived!' });
         return;
       }
 
-      await delay(1000);
+      await delay(MIN_DEFAULT_DELAY);
       const chatButton = await chatDialog.$(INSTAGRAM_CONSTANTS.BUTTON);
 
       if (!chatButton) {
-        console.log('\x1b[31m%s\x1b[0m Chat button not found!', 'ERROR :::');
+        logger({ type: LoggerType.Error, message: 'Chat button not found!' });
         return;
       }
 
       const chatButtons = await chatDialog.$$(INSTAGRAM_CONSTANTS.BUTTON);
+      const isChatButtons = !!chatButtons?.length;
 
-      if (!chatButtons.length) {
-        console.log('\x1b[31m%s\x1b[0m No any buttons found!', 'ERROR :::');
+      if (!isChatButtons) {
+        logger({ type: LoggerType.Error, message: 'No any buttons found!' });
         return;
       }
 
@@ -271,14 +291,14 @@ export class InstagramService {
       for (const button of chatButtons) {
         const buttonText = await page.evaluate((el) => el.textContent.trim(), button);
 
-        if (buttonText === 'Chat') {
+        if (buttonText === CHAT_BUTTON_TITLE) {
           foundChatButton = button;
           break;
         }
       }
 
       if (!foundChatButton) {
-        console.log('\x1b[31m%s\x1b[0m Chat button not found!', 'ERROR :::');
+        logger({ type: LoggerType.Error, message: 'Chat button not found!' });
         return;
       }
 
@@ -288,24 +308,25 @@ export class InstagramService {
 
       if (!isDisabled) {
         await foundChatButton.click();
-        console.log('\x1b[32m%s\x1b[0m Chat button clicked!', 'SUCCESS :::');
+        logger({ type: LoggerType.Info, message: 'Chat button clicked!' });
       } else {
-        console.log('\x1b[31m%s\x1b[0m Chat button is disabled!', 'ERROR :::');
+        logger({ type: LoggerType.Error, message: 'Chat button is disabled!' });
       }
 
       await page.waitForSelector(INSTAGRAM_CONSTANTS.TEXT_AREA, { visible: true });
       const textArea = await page.$(INSTAGRAM_CONSTANTS.TEXT_AREA);
       await textArea.type(message);
-      console.log(`\x1b[32m%s\x1b[0m Message successfully added to the text area`, 'SUCCESS :::');
+      logger({ type: LoggerType.Info, message: 'essage successfully added to the text area' });
       await delay(getRandomNumber(700, 1000));
 
       const sendMessageInputContainer = await page.$(INSTAGRAM_CONSTANTS.SEND_MESSAGE_CONTAINER);
 
       if (sendMessageInputContainer) {
         const buttons = await sendMessageInputContainer.$$(INSTAGRAM_CONSTANTS.BUTTON);
+        const isButtons = !!buttons?.length;
 
-        if (!buttons.length) {
-          console.log('\x1b[31m%s\x1b[0m No buttons found in the message container!', 'ERROR :::');
+        if (!isButtons) {
+          logger({ type: LoggerType.Error, message: 'No buttons found in the message container!' });
           return;
         }
 
@@ -314,26 +335,26 @@ export class InstagramService {
         for (const button of buttons) {
           const buttonText = await page.evaluate((el) => el.textContent.trim(), button);
 
-          if (buttonText === 'Send') {
+          if (buttonText === SEND_MESSAGE_BUTTON_TITLE) {
             foundSendMessageButton = button;
             break;
           }
         }
 
         if (!foundSendMessageButton) {
-          console.log('\x1b[31m%s\x1b[0m Send message button not found!', 'ERROR :::');
+          logger({ type: LoggerType.Error, message: 'Send message button not found!' });
           return;
         }
 
         await foundSendMessageButton.click();
-        console.log('\x1b[32m%s\x1b[0m Message sent successfully!', 'SUCCESS :::');
+        logger({ type: LoggerType.Info, message: 'Message sent successfully!' });
 
         return true;
       }
 
       return false;
     } catch (error) {
-      console.log(`\x1b[31m%s\x1b[0m sendMessage: `, 'ERROR :::', error);
+      logger({ type: LoggerType.Error, message: 'sendMessage', meta: error });
 
       return false;
     }

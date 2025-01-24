@@ -1,6 +1,8 @@
 import Mongoose = require('mongoose');
 require('dotenv').config();
 
+import { logger, LoggerType } from '../utils/logger';
+
 let database: Mongoose.Connection;
 
 export const connect = () => {
@@ -15,11 +17,11 @@ export const connect = () => {
   database = Mongoose.connection;
 
   database.once('open', async () => {
-    console.log(`\x1b[32m%s\x1b[0m Connected to DB: ${process.env.MONGO_CONNECTION_STRING}`, 'SUCCESS :::');
+    logger({ type: LoggerType.Info, message: `Connected to DB: ${process.env.MONGO_CONNECTION_STRING}` });
   });
 
   database.on('error', () => {
-    console.log('\x1b[31m%s\x1b[0m Error connecting to database!', 'ERROR :::');
+    logger({ type: LoggerType.Error, message: 'Error connecting to database!' });
   });
 };
 
@@ -31,6 +33,6 @@ export const disconnect = () => {
   Mongoose.disconnect();
 
   database.once('close', async () => {
-    console.log(`\x1b[32m%s\x1b[0m Diconnected  to database`, 'SUCCESS :::');
+    logger({ type: LoggerType.Info, message: 'Diconnected  to database' });
   });
 };
