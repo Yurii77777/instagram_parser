@@ -64,7 +64,7 @@ export class InstagramController {
               fullName: full_name,
               isPrivate: is_private === 'TRUE',
               nickName: username,
-              segment: Segment.Cosmetology,
+              segment: Segment.SomeSegment,
               isMessageSent: false,
             });
           }
@@ -110,7 +110,7 @@ export class InstagramController {
       }
 
       const followers = await this.followerService.getFollowers(
-        { segment: Segment.Cosmetology, isMessageSent: false },
+        { segment: Segment.SomeSegment, isMessageSent: false },
         getRandomNumber(50, 100),
       );
 
